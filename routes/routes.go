@@ -23,6 +23,8 @@ func NewRoute() *gin.Engine {
 			authed.GET("task/:tid", api.ShowTask)
 			authed.GET("tasks/:uid", api.ListTasks)
 			authed.PUT("updatetask/:tid", api.UpdateTask)
+			authed.POST("search", api.SearchTask)
+			authed.DELETE("task/:tid", api.DeleteTask)
 		}
 	}
 	return r

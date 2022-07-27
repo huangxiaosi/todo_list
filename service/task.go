@@ -26,6 +26,15 @@ type UpdateTaskService struct {
 	Status  int    `json:"status" form:"status"`
 }
 
+type SearchTaskService struct {
+	Info     string `json:"info" form:"info"`
+	PageNum  int    `json:"page_num" form:"page_num"`
+	PageSize int    `json:"page_size" form:"page_size"`
+}
+
+type DeleteTaskService struct {
+}
+
 //新增一条
 func (service *CreateTaskService) Create(id uint) serializer.Response {
 	var user model.User
@@ -88,7 +97,7 @@ func (service *ListTaskService) List(uid uint) serializer.Response {
 }
 
 //更新
-func (service UpdateTaskService) Update(tid string) serializer.Response {
+func (service *UpdateTaskService) Update(tid string) serializer.Response {
 	var task model.Task
 	model.DB.First(&task, tid)
 	task.Title = service.Title
@@ -99,5 +108,41 @@ func (service UpdateTaskService) Update(tid string) serializer.Response {
 		Status: 200,
 		Data:   serializer.BuildTask(task),
 		Msg:    "更新完成。",
+	}
+}
+
+//模糊查询
+func (service *SearchTaskService) Search(uid uint) serializer.Response {
+	var tasks []model.Task
+	count := 0
+	if service.PageSize == 0 {
+		service.PageSize = 15
+	}
+	model.DB.Model(&model.Task{}).Preload("User").Where("uid=?", uid).
+		Where("title Like ? OR content LIKE ?", "%"+service.Info+"%", "%"+service.Info+"%").Count(&count).
+		Limit(service.PageSize).Offset((service.PageNum - 1) * service.PageSize).Find(&tasks)
+
+	return serializer.BuildListPresponse(serializer.BuildTasks(tasks), uint(count))
+	//return serializer.Response{
+	//	Status: 200,
+	//	Data:   serializer.BuildTasks(tasks),
+	//	Msg:    "查询成功。",
+	//}
+
+}
+
+//删除
+func (service *DeleteTaskService) Delete(tid string) serializer.Response {
+	var task model.Task
+	err := model.DB.Delete(&task, tid).Error
+	if err != nil {
+		return serializer.Response{
+			Status: 500,
+			Msg:    "删除失败.",
+		}
+	}
+	return serializer.Response{
+		Status: 200,
+		Msg:    "删除成功。",
 	}
 }
